@@ -1,0 +1,56 @@
+/* Styles for the navigation bar and logout button. */
+
+/* Navigation bar container */
+.nav {
+  background-color: #333;
+  padding: 10px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Navigation list container */
+.navList {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 20px;
+}
+
+/* Navigation list item */
+.navItem {
+  margin: 0;
+}
+
+/* Navigation link styles */
+.navItem a {
+  color: white;
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+/* Navigation link hover effect */
+.navItem a:hover {
+  background-color: #555;
+}
+
+/* Logout button styles */
+.logoutButton {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+/* Logout button hover effect */
+.logoutButton:hover {
+  background-color: #c82333;
+}
