@@ -1,21 +1,17 @@
 /**
- * Middleware: Validates if the authenticated user has the required role(s).
- * Usage: authorizeRoles("management", "admin")
+ * Middleware: Authorizes access based on user roles.
+ * @param {...string} roles - Allowed roles for the route.
+ * @returns {Function} - Middleware function to check user roles.
  */
-const authorizeRoles = (...allowedRoles) => {
+const authorizeRoles = (...roles) => {
   return (req, res, next) => {
-    // Check if user is authenticated
-    if (!req.user) {
-      return res.status(401).json({ error: "Authorization required" });
-    }
-
-    // Check if user's role is allowed
-    if (!allowedRoles.includes(req.user.role)) {
+    // Check if the user's role is included in the allowed roles
+    if (!roles.includes(req.user.role)) {
       return res
         .status(403)
         .json({ error: "Access denied: insufficient role" });
     }
-
+    // Proceed to the next middleware or route handler
     next();
   };
 };

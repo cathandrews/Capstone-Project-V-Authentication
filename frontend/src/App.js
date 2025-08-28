@@ -25,6 +25,7 @@ function App() {
    * State: Manages token persistence in sessionStorage.
    */
   const [token, setToken] = useState(sessionStorage.getItem("token") || "");
+
   useEffect(() => {
     if (token) {
       sessionStorage.setItem("token", token);
@@ -57,7 +58,7 @@ function App() {
                 flexWrap: "wrap",
               }}
             >
-              <Register />
+              <Register setToken={setToken} />
               <Login setToken={setToken} />
             </div>
           ) : (

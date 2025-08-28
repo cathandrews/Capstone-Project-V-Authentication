@@ -1,6 +1,6 @@
 /**
  * Component for updating an existing credential.
- * Fetches all credentials and allows selection and editing of a specific credential.
+ * Fetches credentials the user is authorized to update and allows selection and editing.
  */
 import React, { useState, useEffect } from "react";
 import axios from "axios";
@@ -21,30 +21,47 @@ const UpdateCredential = ({ token }) => {
   const [error, setError] = useState("");
 
   /**
-   * Effect: Fetches all credentials on component mount.
+   * Effect: Fetches credentials the user is authorized to update.
    */
   useEffect(() => {
     const fetchCredentials = async () => {
+      if (!token) {
+        setError("No token found. Please log in again.");
+        return;
+      }
+
       try {
-        const divisions = await axios.get(
+        // Fetch all divisions the user is assigned to
+        const divisionsRes = await axios.get(
           "http://localhost:5000/api/users/divisions/all",
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        const credentialsPromises = divisions.data.map((division) =>
+
+        // Fetch credentials for each division
+        const credentialsPromises = divisionsRes.data.map((division) =>
           axios.get(
             `http://localhost:5000/api/credentials/divisions/${division._id}/credentials`,
             { headers: { Authorization: `Bearer ${token}` } }
           )
         );
+
         const credentialsResponses = await Promise.all(credentialsPromises);
         const allCredentials = credentialsResponses.flatMap(
           (response) => response.data
         );
         setCredentials(allCredentials);
       } catch (err) {
-        setError("Failed to load credentials. Please try again later.");
+        console.error("Failed to fetch credentials:", err);
+        if (err.response?.status === 401) {
+          toast.error("Session expired. Please log in again.");
+        } else if (err.response?.status === 403) {
+          setError("You are not authorized to update any credentials.");
+        } else {
+          setError("Failed to load credentials. Please try again later.");
+        }
       }
     };
+
     fetchCredentials();
   }, [token]);
 
@@ -52,10 +69,10 @@ const UpdateCredential = ({ token }) => {
    * Handler: Populates form fields when a credential is selected.
    */
   const handleCredentialSelect = (e) => {
-    const selectedCredentialId = e.target.value;
-    setSelectedCredentialId(selectedCredentialId);
+    const credentialId = e.target.value;
+    setSelectedCredentialId(credentialId);
     const selectedCredential = credentials.find(
-      (cred) => cred._id === selectedCredentialId
+      (cred) => cred._id === credentialId
     );
     if (selectedCredential) {
       setTitle(selectedCredential.title);
@@ -72,6 +89,7 @@ const UpdateCredential = ({ token }) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
+
     try {
       await axios.put(
         `http://localhost:5000/api/credentials/${selectedCredentialId}`,
@@ -80,7 +98,14 @@ const UpdateCredential = ({ token }) => {
       );
       toast.success("Credential updated successfully!");
     } catch (err) {
-      setError("Failed to update credential. Please try again later.");
+      console.error("Failed to update credential:", err);
+      if (err.response?.status === 401) {
+        toast.error("Session expired. Please log in again.");
+      } else if (err.response?.status === 403) {
+        setError("You are not authorized to update this credential.");
+      } else {
+        setError("Failed to update credential. Please try again later.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -121,6 +146,7 @@ const UpdateCredential = ({ token }) => {
               placeholder="Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              required
               className={styles.formInput}
             />
           </div>
@@ -130,6 +156,7 @@ const UpdateCredential = ({ token }) => {
               placeholder="Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
+              required
               className={styles.formInput}
             />
           </div>
@@ -139,6 +166,7 @@ const UpdateCredential = ({ token }) => {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
               className={styles.formInput}
             />
           </div>
@@ -148,6 +176,7 @@ const UpdateCredential = ({ token }) => {
               placeholder="URL"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
+              required
               className={styles.formInput}
             />
           </div>

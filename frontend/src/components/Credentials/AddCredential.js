@@ -8,9 +8,6 @@ import { toast } from "react-toastify";
 import styles from "../Auth/AuthForm.module.css";
 
 const AddCredential = ({ token }) => {
-  /**
-   * State: Manages form inputs, available divisions, loading, and errors.
-   */
   const [selectedDivisionId, setSelectedDivisionId] = useState("");
   const [title, setTitle] = useState("");
   const [username, setUsername] = useState("");
@@ -21,7 +18,7 @@ const AddCredential = ({ token }) => {
   const [error, setError] = useState("");
 
   /**
-   * Effect: Fetches available divisions on component mount.
+   * Effect: Fetch available divisions on component mount.
    */
   useEffect(() => {
     const fetchDivisions = async () => {
@@ -31,7 +28,12 @@ const AddCredential = ({ token }) => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setDivisions(res.data);
+        // Auto-select the first division if available
+        if (res.data.length > 0) {
+          setSelectedDivisionId(res.data[0]._id);
+        }
       } catch (err) {
+        console.error("Failed to fetch divisions:", err);
         setError("Failed to load divisions. Please try again later.");
       }
     };
@@ -39,7 +41,7 @@ const AddCredential = ({ token }) => {
   }, [token]);
 
   /**
-   * Handler: Submits new credential data to the backend.
+   * Handler: Submit new credential data to the backend.
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -57,6 +59,7 @@ const AddCredential = ({ token }) => {
       setPassword("");
       setUrl("");
     } catch (err) {
+      console.error("Failed to add credential:", err);
       setError("Failed to add credential. Please try again later.");
     } finally {
       setIsLoading(false);
