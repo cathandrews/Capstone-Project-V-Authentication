@@ -10,4 +10,7 @@ const DivisionSchema = new mongoose.Schema({
   description: { type: String },
 });
 
+// Add a composite unique index on name and OU
+DivisionSchema.index({ name: 1, OU: 1 }, { unique: true });
+
 module.exports = mongoose.model("Division", DivisionSchema);
