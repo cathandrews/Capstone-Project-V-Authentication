@@ -6,6 +6,7 @@ const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs"); // Add this line
 const User = require("../models/User");
 
 /**
@@ -15,7 +16,7 @@ const User = require("../models/User");
 router.post("/register", async (req, res) => {
   try {
     const { username, password, ouIds = [], divisionIds = [] } = req.body;
-    console.log("Registration request body:", req.body); // Debug log
+    console.log("Registration request body:", req.body);
 
     // Check if the user already exists
     let user = await User.findOne({ username });
@@ -89,19 +90,17 @@ router.post("/login", async (req, res) => {
       console.log("User not found in database");
       return res.status(400).json({ error: "Invalid credentials" });
     }
-
     console.log("User found:", user.username);
     console.log("Stored hashed password:", user.password);
 
-    // Compare the provided password with the stored hash
-    const isMatch = await user.comparePassword(password);
+    // Compare the provided password with the stored hash using bcrypt
+    const isMatch = await bcrypt.compare(password, user.password);
     console.log("Password match result:", isMatch);
 
     if (!isMatch) {
       console.log("Password does not match");
       return res.status(400).json({ error: "Invalid credentials" });
     }
-
     console.log("Password matches");
 
     // Create a JWT payload with user details
