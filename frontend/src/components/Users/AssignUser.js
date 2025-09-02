@@ -7,7 +7,6 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import styles from "../Auth/AuthForm.module.css";
-
 const AssignUser = ({ token }) => {
   /**
    * State: Manages form inputs, lists, and UI feedback.
@@ -24,7 +23,6 @@ const AssignUser = ({ token }) => {
   const [userOUs, setUserOUs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
   /**
    * Effect: Fetches initial data (users, divisions, and OUs) on component mount.
    */
@@ -51,7 +49,6 @@ const AssignUser = ({ token }) => {
     };
     fetchLists();
   }, [token]);
-
   /**
    * Effect: Fetches user's current divisions and OUs when a user is selected.
    */
@@ -75,7 +72,6 @@ const AssignUser = ({ token }) => {
     };
     fetchUserDetails();
   }, [selectedUserId, token]);
-
   /**
    * Handlers: Toggle checkboxes for removing divisions/OUs.
    */
@@ -93,9 +89,9 @@ const AssignUser = ({ token }) => {
       setOusToRemove([...ousToRemove, ouId]);
     }
   };
-
   /**
    * Handler: Submits assignment/unassignment requests to the backend.
+   * Sends: { divisionId, ouId, divisionsToRemove, ousToRemove }
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -105,8 +101,8 @@ const AssignUser = ({ token }) => {
       await axios.post(
         `http://localhost:5000/api/users/${selectedUserId}/assign`,
         {
-          divisionId: selectedDivisionId,
-          ouId: selectedOuId,
+          divisionId: selectedDivisionId || undefined,
+          ouId: selectedOuId || undefined,
           divisionsToRemove,
           ousToRemove,
         },
@@ -119,7 +115,6 @@ const AssignUser = ({ token }) => {
       setIsLoading(false);
     }
   };
-
   /**
    * Render: Displays the form for assigning/unassigning users.
    */
@@ -219,5 +214,4 @@ const AssignUser = ({ token }) => {
     </div>
   );
 };
-
 export default AssignUser;

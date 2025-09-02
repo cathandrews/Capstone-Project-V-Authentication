@@ -1,5 +1,5 @@
 /**
- * User Management Routes: Handles fetching users, divisions, and OUs.
+ * User Management Routes: Handles fetching users, divisions, and OUs, and user assignment/role changes.
  * Access is controlled by JWT and user permissions.
  */
 const express = require("express");
@@ -10,7 +10,6 @@ const Division = require("../models/Division");
 const OU = require("../models/OU");
 const auth = require("../middleware/auth");
 const authorizeRoles = require("../middleware/authorizeRoles");
-
 /**
  * Fetch all users.
  * Access: Admin only.
@@ -24,7 +23,6 @@ router.get("/", auth, authorizeRoles("admin"), async (req, res) => {
     res.status(500).json({ error: "Failed to fetch users" });
   }
 });
-
 /**
  * Public: Fetch all OUs for registration.
  * Access: No auth required.
@@ -38,7 +36,6 @@ router.get("/ous/public", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch OUs" });
   }
 });
-
 /**
  * Fetch all OUs.
  * Access: Authenticated users.
@@ -52,7 +49,6 @@ router.get("/ous/all", auth, async (req, res) => {
     res.status(500).json({ error: "Failed to fetch OUs" });
   }
 });
-
 /**
  * Public: Fetch all divisions for a specific OU (for registration).
  * Access: No auth required.
@@ -66,7 +62,6 @@ router.get("/ous/:ouId/divisions/public", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch divisions for OU" });
   }
 });
-
 /**
  * Fetch all divisions for a specific OU.
  * Access: Authenticated users.
@@ -80,7 +75,6 @@ router.get("/ous/:ouId/divisions", auth, async (req, res) => {
     res.status(500).json({ error: "Failed to fetch divisions for OU" });
   }
 });
-
 /**
  * Fetch all divisions for the logged-in user.
  * Access: All authenticated users can view all divisions (for dropdowns).
@@ -95,9 +89,9 @@ router.get("/divisions/all", auth, async (req, res) => {
     res.status(500).json({ error: "Failed to fetch divisions" });
   }
 });
-
 /**
  * Assign or unassign a user to divisions/OUs (admin only).
+ * Expects: { divisionId, ouId, divisionsToRemove, ousToRemove }
  */
 router.post(
   "/:userId/assign",
@@ -105,69 +99,76 @@ router.post(
   authorizeRoles("admin"),
   async (req, res) => {
     try {
-      const user = await User.findById(req.params.userId);
-      if (!user) return res.status(404).json({ error: "User not found" });
+      const { userId } = req.params;
       const {
-        divisionIds = [],
-        ouIds = [],
+        divisionId,
+        ouId,
         divisionsToRemove = [],
         ousToRemove = [],
       } = req.body;
-      // Remove divisions
-      if (Array.isArray(divisionsToRemove) && divisionsToRemove.length > 0) {
+      // Validate userId
+      if (!mongoose.Types.ObjectId.isValid(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
+      }
+      // Find the user
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      // Add new division if provided
+      if (divisionId && !user.divisions.includes(divisionId)) {
+        user.divisions.push(divisionId);
+      }
+      // Add new OU if provided
+      if (ouId && !user.OUs.includes(ouId)) {
+        user.OUs.push(ouId);
+      }
+      // Remove divisions if provided
+      if (divisionsToRemove.length > 0) {
         user.divisions = user.divisions.filter(
-          (d) => !divisionsToRemove.includes(d.toString())
+          (id) => !divisionsToRemove.includes(id.toString())
         );
       }
-      // Remove OUs
-      if (Array.isArray(ousToRemove) && ousToRemove.length > 0) {
-        user.OUs = user.OUs.filter((o) => !ousToRemove.includes(o.toString()));
+      // Remove OUs if provided
+      if (ousToRemove.length > 0) {
+        user.OUs = user.OUs.filter(
+          (id) => !ousToRemove.includes(id.toString())
+        );
       }
-      // Add new divisions
-      if (Array.isArray(divisionIds) && divisionIds.length > 0) {
-        divisionIds.forEach((divisionId) => {
-          const castId = new mongoose.Types.ObjectId(divisionId);
-          if (!user.divisions.some((d) => d.toString() === castId.toString())) {
-            user.divisions.push(castId);
-          }
-        });
-      }
-      // Add new OUs
-      if (Array.isArray(ouIds) && ouIds.length > 0) {
-        ouIds.forEach((ouId) => {
-          const castId = new mongoose.Types.ObjectId(ouId);
-          if (!user.OUs.some((o) => o.toString() === castId.toString())) {
-            user.OUs.push(castId);
-          }
-        });
-      }
+      // Save the updated user
       await user.save();
-      res.json(user);
+      res.json({ message: "User updated successfully", user });
     } catch (err) {
-      console.error("Failed to assign user:", err);
-      res.status(500).json({ error: "Failed to assign user" });
+      console.error("Assignment error:", err);
+      res.status(500).json({ error: "Assignment failed" });
     }
   }
 );
-
 /**
  * Change a user's role (admin only).
+ * Expects: { role }
  */
 router.put("/:userId/role", auth, authorizeRoles("admin"), async (req, res) => {
   try {
-    const user = await User.findById(req.params.userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
+    const { userId } = req.params;
     const { role } = req.body;
+    // Validate userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
+    // Validate role
     if (!["normal", "management", "admin"].includes(role)) {
       return res.status(400).json({ error: "Invalid role" });
     }
-    user.role = role;
-    await user.save();
-    res.json(user);
+    // Find and update the user
+    const user = await User.findByIdAndUpdate(userId, { role }, { new: true });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    res.json({ message: "Role updated successfully", user });
   } catch (err) {
-    console.error("Failed to update user role:", err);
-    res.status(500).json({ error: "Failed to update user role" });
+    console.error("Role update error:", err);
+    res.status(500).json({ error: "Role update failed" });
   }
 });
-
 module.exports = router;

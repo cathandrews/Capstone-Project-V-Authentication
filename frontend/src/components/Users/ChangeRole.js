@@ -9,7 +9,6 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import styles from "../Auth/AuthForm.module.css";
 import { RoleContext } from "../../context/RoleContext";
-
 const ChangeRole = ({ token }) => {
   /**
    * State: Manages form inputs, lists, and UI feedback.
@@ -20,7 +19,6 @@ const ChangeRole = ({ token }) => {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
   /**
    * Effect: Fetches all users on component mount.
    */
@@ -37,9 +35,9 @@ const ChangeRole = ({ token }) => {
     };
     fetchUsers();
   }, [token]);
-
   /**
    * Handler: Submits role update request to the backend.
+   * Sends: { role }
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -61,7 +59,6 @@ const ChangeRole = ({ token }) => {
       setIsLoading(false);
     }
   };
-
   /**
    * Render: Displays the form for changing a user's role.
    */
@@ -111,5 +108,4 @@ const ChangeRole = ({ token }) => {
     </div>
   );
 };
-
 export default ChangeRole;
