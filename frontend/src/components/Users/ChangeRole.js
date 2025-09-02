@@ -2,13 +2,14 @@
  * Component for updating a user's role.
  * - Fetches all users from the backend.
  * - Allows admins to change a user's role.
- * - Updates the global role state if the current user's role is changed.
+ * - Updates the global role state and JWT token if the current user's role is changed.
  */
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import styles from "../Auth/AuthForm.module.css";
 import { RoleContext } from "../../context/RoleContext";
+
 const ChangeRole = ({ token }) => {
   /**
    * State: Manages form inputs, lists, and UI feedback.
@@ -19,6 +20,7 @@ const ChangeRole = ({ token }) => {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
   /**
    * Effect: Fetches all users on component mount.
    */
@@ -35,21 +37,31 @@ const ChangeRole = ({ token }) => {
     };
     fetchUsers();
   }, [token]);
+
   /**
    * Handler: Submits role update request to the backend.
    * Sends: { role }
+   * Updates the user's JWT token if their role is changed.
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
     try {
-      await axios.put(
+      const response = await axios.put(
         `http://localhost:5000/api/users/${selectedUserId}/role`,
         { role },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Store the new token if it exists in the response
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+      }
+
       toast.success("User role updated successfully!");
+
+      // Update the global role state if the current user's role is changed
       if (selectedUserId === localStorage.getItem("userId")) {
         setRole(role);
       }
@@ -59,6 +71,7 @@ const ChangeRole = ({ token }) => {
       setIsLoading(false);
     }
   };
+
   /**
    * Render: Displays the form for changing a user's role.
    */
@@ -108,4 +121,5 @@ const ChangeRole = ({ token }) => {
     </div>
   );
 };
+
 export default ChangeRole;

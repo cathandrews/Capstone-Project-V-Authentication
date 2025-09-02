@@ -2,11 +2,13 @@
  * Component for assigning users to divisions/OUs or removing them.
  * - Fetches users, divisions, and OUs from the backend.
  * - Allows admins to assign/unassign users to divisions and OUs.
+ * - Updates the user's JWT token if their permissions are changed.
  */
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import styles from "../Auth/AuthForm.module.css";
+
 const AssignUser = ({ token }) => {
   /**
    * State: Manages form inputs, lists, and UI feedback.
@@ -23,6 +25,7 @@ const AssignUser = ({ token }) => {
   const [userOUs, setUserOUs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
   /**
    * Effect: Fetches initial data (users, divisions, and OUs) on component mount.
    */
@@ -49,6 +52,7 @@ const AssignUser = ({ token }) => {
     };
     fetchLists();
   }, [token]);
+
   /**
    * Effect: Fetches user's current divisions and OUs when a user is selected.
    */
@@ -72,6 +76,7 @@ const AssignUser = ({ token }) => {
     };
     fetchUserDetails();
   }, [selectedUserId, token]);
+
   /**
    * Handlers: Toggle checkboxes for removing divisions/OUs.
    */
@@ -82,6 +87,7 @@ const AssignUser = ({ token }) => {
       setDivisionsToRemove([...divisionsToRemove, divisionId]);
     }
   };
+
   const handleOuToRemoveChange = (ouId) => {
     if (ousToRemove.includes(ouId)) {
       setOusToRemove(ousToRemove.filter((id) => id !== ouId));
@@ -89,16 +95,18 @@ const AssignUser = ({ token }) => {
       setOusToRemove([...ousToRemove, ouId]);
     }
   };
+
   /**
    * Handler: Submits assignment/unassignment requests to the backend.
    * Sends: { divisionId, ouId, divisionsToRemove, ousToRemove }
+   * Updates the user's JWT token if their permissions are changed.
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
     try {
-      await axios.post(
+      const response = await axios.post(
         `http://localhost:5000/api/users/${selectedUserId}/assign`,
         {
           divisionId: selectedDivisionId || undefined,
@@ -108,6 +116,12 @@ const AssignUser = ({ token }) => {
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
+
+      // Store the new token if it exists in the response
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+      }
+
       toast.success("User assigned successfully!");
     } catch (err) {
       setError("Failed to assign user. Please try again later.");
@@ -115,6 +129,7 @@ const AssignUser = ({ token }) => {
       setIsLoading(false);
     }
   };
+
   /**
    * Render: Displays the form for assigning/unassigning users.
    */
@@ -214,4 +229,5 @@ const AssignUser = ({ token }) => {
     </div>
   );
 };
+
 export default AssignUser;
